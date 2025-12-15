@@ -3,6 +3,10 @@ import numpy as np
 from PIL import Image
 import math
 from numba import njit
+import time
+
+print('starting code execution timer')
+start_time = time.perf_counter()
 
 # Load and preprocess images
 image_a = Image.open("imageA.jpg").convert("RGB")
@@ -60,3 +64,7 @@ perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
 mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
 mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
 mapped_image.save("annealed_image_numba.jpg")
+
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+print(f"Elapsed time: {elapsed_time:.4f} seconds")
