@@ -1,8 +1,8 @@
 
 import numpy as np
 from PIL import Image
-import random
 import math
+from numba import njit
 
 # Load and preprocess images
 image_a = Image.open("imageA.jpg").convert("RGB")
@@ -14,48 +14,49 @@ pixels_b = np.array(image_b)
 
 flat_a = pixels_a.reshape(-1, 3)
 flat_b = pixels_b.reshape(-1, 3)
+num_pixels = len(flat_a)
 
-perm = np.arange(len(flat_a))
+perm = np.arange(num_pixels)
 np.random.shuffle(perm)
 
-# Precompute initial cost
-mapped = flat_a[perm]
-current_cost = np.sum((mapped - flat_b) ** 2)
+@njit
+def anneal(flat_a, flat_b, perm, T, alpha, iterations):
+    num_pixels = len(flat_a)
+    current_cost = np.sum((flat_a[perm] - flat_b) ** 2) / num_pixels
 
-# Simulated annealing parameters
-T = 1e6
-alpha = 0.995
-iterations = 200000
+    for i in range(iterations):
+        idx1 = np.random.randint(0, num_pixels)
+        idx2 = np.random.randint(0, num_pixels)
 
-for i in range(iterations):
-    idx1, idx2 = random.sample(range(len(perm)), 2)
+        old_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
 
-    # Compute old contributions
-    old_cost = np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) + \
-               np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)
+        perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
 
-    # Swap
-    perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+        new_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
 
-    # Compute new contributions
-    new_cost = np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) + \
-               np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)
+        delta = new_cost - old_cost
+        arg = -delta / T
 
-    delta = new_cost - old_cost
+        # Overflow-safe acceptance
+        if delta < 0 or (arg > -700 and np.random.random() < math.exp(arg)):
+            current_cost += delta
+        else:
+            perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
 
-    # Accept or revert
-    if delta < 0 or random.random() < math.exp(-delta / T):
-        current_cost += delta
-    else:
-        perm[idx1], perm[idx2] = perm[idx2], perm[idx1]  # revert
+        T *= alpha
 
-    T *= alpha
+    return perm
 
-    if i % 10000 == 0:
-        print(f"Iteration {i}, Cost: {current_cost}, Temp: {T}")
+# Run annealing
+T = 2000.0
+alpha = 0.999
+iterations = 2000000
+
+perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
 
 # Build final image
 mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
-mapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
-mapped_image.save("annealed_image_optimized.jpg")
-mapped_image.show()
+mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
+mapped_image.save("annealed_image_numba.jpg")
