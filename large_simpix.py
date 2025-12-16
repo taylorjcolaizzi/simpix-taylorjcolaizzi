@@ -5,7 +5,9 @@ import math
 from numba import njit
 import time
 
-print('starting code execution timer')
+# STARTING THE FIRST SET A and B
+
+print('starting code execution timer for image A -> B')
 start_time = time.perf_counter()
 
 # Load and preprocess images
@@ -63,7 +65,205 @@ perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
 # Build final image
 mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
 mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
-mapped_image.save("large_annealed_image_numba.jpg")
+mapped_image.save("large_annealed_image_numba_A->B.jpg")
+
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+print(f"Elapsed time: {elapsed_time:.4f} seconds")
+
+# Redo for the reverse
+
+print('starting code execution timer for image B -> A')
+start_time = time.perf_counter()
+
+# Load and preprocess images
+image_a = Image.open("large_imageB.jpg").convert("RGB")
+image_b = Image.open("large_imageA.jpg").convert("RGB")
+image_a = image_a.resize(image_b.size)
+
+pixels_a = np.array(image_a)
+pixels_b = np.array(image_b)
+
+flat_a = pixels_a.reshape(-1, 3)
+flat_b = pixels_b.reshape(-1, 3)
+num_pixels = len(flat_a)
+
+perm = np.arange(num_pixels)
+np.random.shuffle(perm)
+
+@njit
+def anneal(flat_a, flat_b, perm, T, alpha, iterations):
+    num_pixels = len(flat_a)
+    current_cost = np.sum((flat_a[perm] - flat_b) ** 2) / num_pixels
+
+    for i in range(iterations):
+        idx1 = np.random.randint(0, num_pixels)
+        idx2 = np.random.randint(0, num_pixels)
+
+        old_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        new_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        delta = new_cost - old_cost
+        arg = -delta / T
+
+        # Overflow-safe acceptance
+        if delta < 0 or (arg > -700 and np.random.random() < math.exp(arg)):
+            current_cost += delta
+        else:
+            perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        T *= alpha
+
+    return perm
+
+# Run annealing
+T = 4000.0
+alpha = 0.999
+iterations = 200000000
+
+perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
+
+# Build final image
+mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
+mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
+mapped_image.save("large_annealed_image_numba_B->A.jpg")
+
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+print(f"Elapsed time: {elapsed_time:.4f} seconds")
+
+# STARTING THE SECOND SET C AND D
+
+print('starting code execution timer for image A -> B')
+start_time = time.perf_counter()
+
+# Load and preprocess images
+image_a = Image.open("large_imageC.jpg").convert("RGB")
+image_b = Image.open("large_imageD.jpg").convert("RGB")
+image_a = image_a.resize(image_b.size)
+
+pixels_a = np.array(image_a)
+pixels_b = np.array(image_b)
+
+flat_a = pixels_a.reshape(-1, 3)
+flat_b = pixels_b.reshape(-1, 3)
+num_pixels = len(flat_a)
+
+perm = np.arange(num_pixels)
+np.random.shuffle(perm)
+
+@njit
+def anneal(flat_a, flat_b, perm, T, alpha, iterations):
+    num_pixels = len(flat_a)
+    current_cost = np.sum((flat_a[perm] - flat_b) ** 2) / num_pixels
+
+    for i in range(iterations):
+        idx1 = np.random.randint(0, num_pixels)
+        idx2 = np.random.randint(0, num_pixels)
+
+        old_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        new_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        delta = new_cost - old_cost
+        arg = -delta / T
+
+        # Overflow-safe acceptance
+        if delta < 0 or (arg > -700 and np.random.random() < math.exp(arg)):
+            current_cost += delta
+        else:
+            perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        T *= alpha
+
+    return perm
+
+# Run annealing
+T = 4000.0
+alpha = 0.999
+iterations = 200000000
+
+perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
+
+# Build final image
+mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
+mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
+mapped_image.save("large_annealed_image_numba_C->D.jpg")
+
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+print(f"Elapsed time: {elapsed_time:.4f} seconds")
+
+# SECOND SET STARTING NOW
+
+print('starting code execution timer for image B -> A')
+start_time = time.perf_counter()
+
+# Load and preprocess images
+image_a = Image.open("large_imageD.jpg").convert("RGB")
+image_b = Image.open("large_imageC.jpg").convert("RGB")
+image_a = image_a.resize(image_b.size)
+
+pixels_a = np.array(image_a)
+pixels_b = np.array(image_b)
+
+flat_a = pixels_a.reshape(-1, 3)
+flat_b = pixels_b.reshape(-1, 3)
+num_pixels = len(flat_a)
+
+perm = np.arange(num_pixels)
+np.random.shuffle(perm)
+
+@njit
+def anneal(flat_a, flat_b, perm, T, alpha, iterations):
+    num_pixels = len(flat_a)
+    current_cost = np.sum((flat_a[perm] - flat_b) ** 2) / num_pixels
+
+    for i in range(iterations):
+        idx1 = np.random.randint(0, num_pixels)
+        idx2 = np.random.randint(0, num_pixels)
+
+        old_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        new_cost = (np.sum((flat_a[perm[idx1]] - flat_b[idx1]) ** 2) +
+                    np.sum((flat_a[perm[idx2]] - flat_b[idx2]) ** 2)) / num_pixels
+
+        delta = new_cost - old_cost
+        arg = -delta / T
+
+        # Overflow-safe acceptance
+        if delta < 0 or (arg > -700 and np.random.random() < math.exp(arg)):
+            current_cost += delta
+        else:
+            perm[idx1], perm[idx2] = perm[idx2], perm[idx1]
+
+        T *= alpha
+
+    return perm
+
+# Run annealing
+T = 4000.0
+alpha = 0.999
+iterations = 200000000
+
+perm = anneal(flat_a, flat_b, perm, T, alpha, iterations)
+
+# Build final image
+mapped_pixels = flat_a[perm].reshape(pixels_a.shape)
+mapped_image = Image.fromarraymapped_image = Image.fromarray(mapped_pixels.astype('uint8'), 'RGB')
+mapped_image.save("large_annealed_image_numba_D->C.jpg")
 
 end_time = time.perf_counter()
 elapsed_time = end_time - start_time
